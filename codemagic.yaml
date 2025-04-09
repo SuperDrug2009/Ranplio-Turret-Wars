@@ -46,14 +46,13 @@ workflows:
             xcode-project use-profiles
         - name: Increment build number
           script: |
+            # agvtool new-version -all $(($BUILD_NUMBER + 1))
             agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
         - name: Build ipa for distribution
           script: |
             xcode-project build-ipa --workspace "$XCODE_PROJECT" --scheme "$XCODE_SCHEME" --verbose
             echo "Build logs:"
-            find $HOME/Library/Developer/Xcode/DerivedData -name "*.log" -type f -exec cat {} \;
-            echo "Xcode build settings:"
-            xcodebuild -workspace "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" -showBuildSettings
+            cat $HOME/Library/Developer/Xcode/DerivedData/*/Logs/Build/*.log
       artifacts:
         - build/ios/ipa/*.ipa
         - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
