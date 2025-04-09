@@ -38,12 +38,6 @@ workflows:
         - name: Fetch signing files
           script: |
             app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502' --verbose
-        - name: Enable required capabilities
-          script: |
-            xcode-project use-profiles
-            xcode-project add-capability --target "turret" --capability "App Groups"
-            xcode-project add-capability --target "turret" --capability "Push Notifications"
-            xcode-project add-entitlements --target "turret" --entitlements "com.apple.security.application-groups" --value "group.$BUNDLE_ID"
         - name: Use system default keychain
           script: |
             keychain add-certificates
