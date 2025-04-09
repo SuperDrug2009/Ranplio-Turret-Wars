@@ -31,13 +31,13 @@ workflows:
       scripts:
         - name: Install pods
           script: |
-            pod install
+            pod install --verbose
         - name: Set up keychain to be used for codesigning using Codemagic CLI 'keychain' command
           script: |
             keychain initialize
         - name: Fetch signing files
           script: |
-            app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502'
+            app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502' --verbose
         - name: Use system default keychain
           script: |
             keychain add-certificates
@@ -50,7 +50,7 @@ workflows:
             agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
         - name: Build ipa for distribution
           script: |
-            xcode-project build-ipa --workspace "$XCODE_PROJECT" --scheme "$XCODE_SCHEME" --verbose
+            xcode-project build-ipa --workspace "$XCODE_PROJECT" --scheme "$XCODE_SCHEME" --verbose --show-xcodebuild-output
       artifacts:
         - build/ios/ipa/*.ipa
         - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
