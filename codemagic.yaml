@@ -5,21 +5,19 @@ workflows:
         groups:
         # Add the group environment variables in Codemagic UI (either in Application/Team variables) - https://docs.codemagic.io/variables/environment-variable-groups/
           - app_store_credentials # <-- (APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_PRIVATE_KEY)
-            # APP_STORE_CONNECT_ISSUER_ID <-- Put your App Store Connect Issuer Id here
-            # APP_STORE_CONNECT_KEY_IDENTIFIER <-- Put your App Store Connect Key Identifier here
+            # APP_STORE_CONNECT_ISSUER_ID <-- Put your App Store Connect Issuer Id here 
+            # APP_STORE_CONNECT_KEY_IDENTIFIER <-- Put your App Store Connect Key Identifier here 
             # APP_STORE_CONNECT_PRIVATE_KEY <-- Put your App Store Connect Private Key here
             # See the following link for more details - https://docs.codemagic.io/code-signing-yaml/signing-ios/
             # https://appstoreconnect.apple.com/access/api
           - certificate_credentials # <-- (CERTIFICATE_PRIVATE_KEY - Put your Certificate Private Key here)
           #- other
         vars:
-          XCODE_PROJECT: "Unity-iPhone.xcworkspace"
-          XCODE_SCHEME: "Unity-iPhone"
-          MAIN_BUNDLE_ID: "com.tartbxvfsidniopusoup.eororwopsvorliao"
-          TURRET_BUNDLE_ID: "com.tartbxvfsidniopusoup.eororwopsvorliao.turret"
-          APP_GROUP_ID: "group.com.tartbxvfsidniopusoup.eororwopsvorliao.turret"
-          APP_STORE_APPLE_ID: 6744333744
-        xcode: latest
+          XCODE_PROJECT: "Unity-iPhone.xcworkspace" # <-- Put the name of your workspace here.
+          XCODE_SCHEME: "Unity-iPhone" # <-- Put the name of your scheme here.
+          BUNDLE_ID: "com.tartbxvfsidniopusoup.eororwopsvorliao" # <-- Put your Bundle Id here.
+          APP_STORE_APPLE_ID: 6744333744 # <-- Put the app id number here. This is found in App Store Connect > App > General > App Information
+        xcode: latest # <-- set to specific version e.g. 14.3, 15.0 to avoid unexpected updates.
         cocoapods: default
       triggering:
         events:
@@ -33,106 +31,36 @@ workflows:
       scripts:
         - name: Install pods
           script: |
-            pod install --verbose
-        - name: Set up keychain
+            pod install
+        - name: Set up keychain to be used for codesigning using Codemagic CLI 'keychain' command
           script: |
             keychain initialize
-        - name: Copy provisioning profiles
-          script: |
-            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles/
-            cp new_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-            chmod 644 ~/Library/MobileDevice/Provisioning\ Profiles/new_profile.mobileprovision
         - name: Fetch signing files
           script: |
-            app-store-connect fetch-signing-files $MAIN_BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502' --verbose
-        - name: Configure entitlements
-          script: |
-            # Create entitlements file for main app
-            cat > Unity-iPhone/Unity-iPhone.entitlements << EOF
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-                <key>aps-environment</key>
-                <string>production</string>
-                <key>com.apple.security.application-groups</key>
-                <array>
-                    <string>$APP_GROUP_ID</string>
-                </array>
-            </dict>
-            </plist>
-            EOF
-            
-            # Create entitlements file for turret target
-            cat > Unity-iPhone/turret.entitlements << EOF
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-                <key>aps-environment</key>
-                <string>production</string>
-                <key>com.apple.security.application-groups</key>
-                <array>
-                    <string>$APP_GROUP_ID</string>
-                </array>
-            </dict>
-            </plist>
-            EOF
+            app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502'
         - name: Use system default keychain
           script: |
             keychain add-certificates
-        - name: Set up code signing settings
+        - name: Set up code signing settings on Xcode project
           script: |
             xcode-project use-profiles
-            # Настроим профиль для таргета turret
-            xcodebuild -workspace "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
-              PROVISIONING_PROFILE_SPECIFIER="new profile" \
-              CODE_SIGN_IDENTITY="Apple Distribution" \
-              DEVELOPMENT_TEAM="PPSV85J558" \
-              CODE_SIGN_STYLE="Manual" \
-              PRODUCT_BUNDLE_IDENTIFIER="$TURRET_BUNDLE_ID"
         - name: Increment build number
           script: |
+            # agvtool new-version -all $(($BUILD_NUMBER + 1))
             agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
         - name: Build ipa for distribution
           script: |
-            xcode-project build-ipa --workspace "$XCODE_PROJECT" --scheme "$XCODE_SCHEME" \
-              --export-options-plist <(cat << EOF
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-                <key>method</key>
-                <string>app-store</string>
-                <key>provisioningProfiles</key>
-                <dict>
-                    <key>$MAIN_BUNDLE_ID</key>
-                    <string>tart ios_app_store 1744227422</string>
-                    <key>$TURRET_BUNDLE_ID</key>
-                    <string>new profile</string>
-                </dict>
-                <key>signingCertificate</key>
-                <string>Apple Distribution</string>
-                <key>signingStyle</key>
-                <string>manual</string>
-                <key>teamID</key>
-                <string>PPSV85J558</string>
-            </dict>
-            </plist>
-            EOF
-            ) --verbose
-            echo "Build logs:"
-            cat $HOME/Library/Developer/Xcode/DerivedData/*/Logs/Build/*.log
+            xcode-project build-ipa --workspace "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
       artifacts:
         - build/ios/ipa/*.ipa
         - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
       publishing:
-        app_store_connect:   # https://docs.codemagic.io/publishing-yaml/distribution
+        app_store_connect:   # https://docs.codemagic.io/publishing-yaml/distribution              
             api_key: $APP_STORE_CONNECT_PRIVATE_KEY         # Contents of the API key, can also reference environment variable such as $APP_STORE_CONNECT_PRIVATE_KEY
             key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER       # Alphanumeric value that identifies the API key, can also reference environment variable such as $APP_STORE_CONNECT_KEY_IDENTIFIER
             issuer_id: $APP_STORE_CONNECT_ISSUER_ID         # Alphanumeric value that identifies who created the API key, can also reference environment variable such as $APP_STORE_CONNECT_ISSUER_ID
             submit_to_testflight: true                     # Optional boolean, defaults to false. Whether or not to submit the uploaded build to TestFlight beta review. Required for distributing to beta groups. Note: This action is performed during post-processing.
-            # beta_groups:                                  # Specify the names of beta tester groups that will get access to the build once it has passed beta review.
+            # beta_groups:                                  # Specify the names of beta tester groups that will get access to the build once it has passed beta review. 
             #       - group name 1
             #       - group name 2
         email:
