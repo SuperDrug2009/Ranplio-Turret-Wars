@@ -1,6 +1,6 @@
 source 'https://cdn.cocoapods.org/'
  
-platform :ios, '12.0'
+platform :ios, '11.0'
  
 target 'UnityFramework' do
   pod 'AppsFlyerFramework', '6.13.0'
@@ -9,7 +9,7 @@ target 'UnityFramework' do
 end
 target 'Unity-iPhone' do
 end
-target 'Handl' do
+target 'turret' do
     pod 'GoogleUtilities/AppDelegateSwizzler'
     pod 'GoogleUtilities/MethodSwizzler'
     pod 'GoogleUtilities/Network'

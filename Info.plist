@@ -26,17 +26,18 @@
 	<string>8.5.2</string>
 	<key>CFBundleVersion</key>
 	<string>16</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+      <!--Include to allow all connections (DANGER)-->
+      <key>NSAllowsArbitraryLoads</key>
+          <true/>
+    </dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Camera access is used for capturing photos and scanning documents directly within the app. Your privacy is fully respected.</string>
+    <key>NSUserTrackingUsageDescription</key>
+    <string>Allowing tracking helps us tailor content and features to your preferences. We handle your data with care and never share it without your consent.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Camera access is required for capturing photos and scanning documents, helping improve your experience with the app. Your privacy is fully protected.</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Data collection helps us provide more relevant content and enhance your overall experience. We respect your privacy and comply with all data protection standards.</string>
 	<key>SKAdNetworkItems</key>
 	<array/>
 	<key>UIBackgroundModes</key>
