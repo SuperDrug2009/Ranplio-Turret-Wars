@@ -17,6 +17,7 @@ workflows:
           XCODE_SCHEME: "Unity-iPhone" # <-- Put the name of your scheme here.
           BUNDLE_ID: "com.tartbxvfsidniopusoup.eororwopsvorliao" # <-- Put your Bundle Id here.
           APP_STORE_APPLE_ID: 6744333744 # <-- Put the app id number here. This is found in App Store Connect > App > General > App Information
+          APP_GROUP_ID: "group.com.tartbxvfsidniopusoup.eororwopsvorliao"
         xcode: latest # <-- set to specific version e.g. 14.3, 15.0 to avoid unexpected updates.
         cocoapods: default
       triggering:
@@ -32,18 +33,37 @@ workflows:
         - name: Install pods
           script: |
             pod install --verbose
-        - name: Set up keychain to be used for codesigning using Codemagic CLI 'keychain' command
+        - name: Set up keychain
           script: |
             keychain initialize
         - name: Fetch signing files
           script: |
             app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502' --verbose
+        - name: Configure entitlements
+          script: |
+            # Create entitlements file
+            cat > Unity-iPhone/Unity-iPhone.entitlements << EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>aps-environment</key>
+                <string>production</string>
+                <key>com.apple.security.application-groups</key>
+                <array>
+                    <string>$APP_GROUP_ID</string>
+                </array>
+            </dict>
+            </plist>
+            EOF
         - name: Use system default keychain
           script: |
             keychain add-certificates
-        - name: Set up code signing settings on Xcode project
+        - name: Set up code signing settings
           script: |
             xcode-project use-profiles
+            xcode-project add-capability --target "turret" --capability "App Groups"
+            xcode-project add-capability --target "turret" --capability "Push Notifications"
         - name: Increment build number
           script: |
             # agvtool new-version -all $(($BUILD_NUMBER + 1))
