@@ -1,0 +1,31 @@
+{
+  "project_info": {
+    "project_number": "913840708306",
+    "project_id": "ranplio-turret-wars",
+    "storage_bucket": "ranplio-turret-wars.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:913840708306:ios:ec4d668be9b1d38a2cab0b",
+        "android_client_info": {
+          "package_name": "com.tartbxvfsidniopusoup.eororwopsvorliao"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmr3k3BkN79tavRIZHg8tuFN-TvKy4L7I"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 0
+        },
+        "appinvite_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
