@@ -13,12 +13,13 @@ workflows:
           - certificate_credentials # <-- (CERTIFICATE_PRIVATE_KEY - Put your Certificate Private Key here)
           #- other
         vars:
-          XCODE_PROJECT: "Unity-iPhone.xcworkspace" # <-- Put the name of your workspace here.
-          XCODE_SCHEME: "Unity-iPhone" # <-- Put the name of your scheme here.
-          BUNDLE_ID: "com.tartbxvfsidniopusoup.eororwopsvorliao" # <-- Put your Bundle Id here.
-          APP_STORE_APPLE_ID: 6744333744 # <-- Put the app id number here. This is found in App Store Connect > App > General > App Information
+          XCODE_PROJECT: "Unity-iPhone.xcworkspace"
+          XCODE_SCHEME: "Unity-iPhone"
+          MAIN_BUNDLE_ID: "com.tartbxvfsidniopusoup.eororwopsvorliao"
+          TURRET_BUNDLE_ID: "com.tartbxvfsidniopusoup.eororwopsvorliao.turret"
           APP_GROUP_ID: "group.com.tartbxvfsidniopusoup.eororwopsvorliao.turret"
-        xcode: latest # <-- set to specific version e.g. 14.3, 15.0 to avoid unexpected updates.
+          APP_STORE_APPLE_ID: 6744333744
+        xcode: latest
         cocoapods: default
       triggering:
         events:
@@ -40,11 +41,10 @@ workflows:
           script: |
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles/
             cp new_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-            # Установим правильные разрешения для профиля
             chmod 644 ~/Library/MobileDevice/Provisioning\ Profiles/new_profile.mobileprovision
         - name: Fetch signing files
           script: |
-            app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502' --verbose
+            app-store-connect fetch-signing-files $MAIN_BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502' --verbose
         - name: Configure entitlements
           script: |
             # Create entitlements file for main app
@@ -84,8 +84,13 @@ workflows:
         - name: Set up code signing settings
           script: |
             xcode-project use-profiles
-            # Установим профиль для таргета turret
-            /usr/libexec/PlistBuddy -c "Set :PROVISIONING_PROFILE_SPECIFIER 'new profile'" Unity-iPhone.xcodeproj/project.pbxproj
+            # Настроим профиль для таргета turret
+            xcodebuild -workspace "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+              PROVISIONING_PROFILE_SPECIFIER="new profile" \
+              CODE_SIGN_IDENTITY="Apple Distribution" \
+              DEVELOPMENT_TEAM="PPSV85J558" \
+              CODE_SIGN_STYLE="Manual" \
+              PRODUCT_BUNDLE_IDENTIFIER="$TURRET_BUNDLE_ID"
         - name: Increment build number
           script: |
             agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
@@ -101,9 +106,9 @@ workflows:
                 <string>app-store</string>
                 <key>provisioningProfiles</key>
                 <dict>
-                    <key>com.tartbxvfsidniopusoup.eororwopsvorliao</key>
+                    <key>$MAIN_BUNDLE_ID</key>
                     <string>tart ios_app_store 1744227422</string>
-                    <key>com.tartbxvfsidniopusoup.eororwopsvorliao.turret</key>
+                    <key>$TURRET_BUNDLE_ID</key>
                     <string>new profile</string>
                 </dict>
                 <key>signingCertificate</key>
