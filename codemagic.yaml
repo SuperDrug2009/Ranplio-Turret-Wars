@@ -40,6 +40,8 @@ workflows:
           script: |
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles/
             cp new_profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+            # Установим правильные разрешения для профиля
+            chmod 644 ~/Library/MobileDevice/Provisioning\ Profiles/new_profile.mobileprovision
         - name: Fetch signing files
           script: |
             app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='040502' --verbose
@@ -82,12 +84,38 @@ workflows:
         - name: Set up code signing settings
           script: |
             xcode-project use-profiles
+            # Установим профиль для таргета turret
+            /usr/libexec/PlistBuddy -c "Set :PROVISIONING_PROFILE_SPECIFIER 'new profile'" Unity-iPhone.xcodeproj/project.pbxproj
         - name: Increment build number
           script: |
             agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
         - name: Build ipa for distribution
           script: |
-            xcode-project build-ipa --workspace "$XCODE_PROJECT" --scheme "$XCODE_SCHEME" --verbose
+            xcode-project build-ipa --workspace "$XCODE_PROJECT" --scheme "$XCODE_SCHEME" \
+              --export-options-plist <(cat << EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+                <key>method</key>
+                <string>app-store</string>
+                <key>provisioningProfiles</key>
+                <dict>
+                    <key>com.tartbxvfsidniopusoup.eororwopsvorliao</key>
+                    <string>tart ios_app_store 1744227422</string>
+                    <key>com.tartbxvfsidniopusoup.eororwopsvorliao.turret</key>
+                    <string>new profile</string>
+                </dict>
+                <key>signingCertificate</key>
+                <string>Apple Distribution</string>
+                <key>signingStyle</key>
+                <string>manual</string>
+                <key>teamID</key>
+                <string>PPSV85J558</string>
+            </dict>
+            </plist>
+            EOF
+            ) --verbose
             echo "Build logs:"
             cat $HOME/Library/Developer/Xcode/DerivedData/*/Logs/Build/*.log
       artifacts:
